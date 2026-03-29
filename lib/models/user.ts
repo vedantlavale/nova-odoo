@@ -11,6 +11,8 @@ export interface User {
   title?: string;
   managerId?: Types.ObjectId | null;
   isActive: boolean;
+  resetPasswordTokenHash?: string | null;
+  resetPasswordExpiresAt?: Date | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -59,6 +61,14 @@ const userSchema = new Schema<User>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    resetPasswordTokenHash: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpiresAt: {
+      type: Date,
+      default: null,
     },
   },
   {

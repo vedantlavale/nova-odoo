@@ -1,6 +1,6 @@
 "use client";
 
-import { type FormEvent } from "react";
+import { useState, type DragEvent, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +43,9 @@ interface EmployeeViewProps {
   };
   setExpenseForm: (updater: (prev: EmployeeViewProps["expenseForm"]) => EmployeeViewProps["expenseForm"]) => void;
   onSubmitExpense: (e: FormEvent<HTMLFormElement>) => void;
+  onScanReceiptImage: (file: File) => void;
+  ocrProgress: number;
+  ocrStatus: string;
 }
 
 function statusConfig(status: Expense["status"]) {
@@ -51,9 +54,30 @@ function statusConfig(status: Expense["status"]) {
   return { label: "Pending", icon: ClockIcon, className: "bg-amber-50 text-amber-700 border-amber-200" };
 }
 
-export function EmployeeView({ user, company, expenses, isBusy, expenseForm, setExpenseForm, onSubmitExpense }: EmployeeViewProps) {
+export function EmployeeView({
+  user,
+  company,
+  expenses,
+  isBusy,
+  expenseForm,
+  setExpenseForm,
+  onSubmitExpense,
+  onScanReceiptImage,
+  ocrProgress,
+  ocrStatus,
+}: EmployeeViewProps) {
+  const [isDragActive, setIsDragActive] = useState(false);
   const totalApproved = expenses.filter(e => e.status === "approved").reduce((s, e) => s + e.companyAmount, 0);
   const totalPending = expenses.filter(e => e.status === "pending").reduce((s, e) => s + e.companyAmount, 0);
+
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDragActive(false);
+    const selected = event.dataTransfer.files?.[0];
+    if (selected) {
+      onScanReceiptImage(selected);
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -162,6 +186,49 @@ export function EmployeeView({ user, company, expenses, isBusy, expenseForm, set
                     rows={3}
                     className="resize-none text-sm rounded-xl border-gray-200 focus-visible:ring-[#22c55e]"
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-mono uppercase tracking-[0.15em] text-gray-400">
+                    Receipt Image <span className="normal-case font-normal text-gray-400">(OCR autofill)</span>
+                  </Label>
+                  <div
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      setIsDragActive(true);
+                    }}
+                    onDragLeave={() => setIsDragActive(false)}
+                    onDrop={handleDrop}
+                    className={`rounded-xl border-2 border-dashed p-3 transition-colors ${
+                      isDragActive ? "border-[#22c55e] bg-[#f0fdf4]" : "border-gray-200 bg-[#fafafa]"
+                    }`}
+                  >
+                    <p className="text-[11px] text-gray-500">Drag and drop receipt image/PDF here, or choose a file below.</p>
+                  </div>
+                  <Input
+                    type="file"
+                    accept="image/*,.pdf,application/pdf"
+                    onChange={(e) => {
+                      const selected = e.target.files?.[0];
+                      if (selected) {
+                        onScanReceiptImage(selected);
+                      }
+                      e.currentTarget.value = "";
+                    }}
+                    className="h-10 rounded-xl border-gray-200 focus-visible:ring-[#22c55e]"
+                  />
+                  <p className="text-[11px] text-gray-400">Upload a receipt photo or PDF to auto-fill amount, date, and description.</p>
+
+                  {ocrStatus && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2.5">
+                      <p className="text-[11px] text-emerald-800">{ocrStatus}</p>
+                      {ocrProgress > 0 && ocrProgress < 100 && (
+                        <div className="mt-2 h-1.5 w-full rounded-full bg-emerald-100 overflow-hidden">
+                          <div className="h-full rounded-full bg-emerald-500" style={{ width: `${ocrProgress}%` }} />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <Button

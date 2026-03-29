@@ -33,6 +33,15 @@ export const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: emailSchema,
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(20).max(200),
+  newPassword: passwordSchema,
+});
+
 export const createUserSchema = z
   .object({
     name: z.string().trim().min(2).max(120),
